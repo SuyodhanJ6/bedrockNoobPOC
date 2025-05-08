@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bedrock-rag-mcp-server"
+version = "0.1.0"
+description = "Bedrock RAG MCP Server for Amazon Bedrock RAG implementation"
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv",
+    "starlette",
+    "uvicorn",
+    "boto3>=1.38.10",
+    "langchain>=0.3.25",
+    "langchain-aws>=0.2.22",
+    "langchain-community>=0.3.23",
+    "mcp>=1.7.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
