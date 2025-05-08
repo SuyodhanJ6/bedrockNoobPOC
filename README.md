@@ -1,6 +1,18 @@
 # Bedrock RAG System
 
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg?logo=python&logoColor=white)](https://www.python.org)
+[![AWS Bedrock](https://img.shields.io/badge/AWS%20Bedrock-232F3E.svg?logo=amazon-aws&logoColor=white)](https://aws.amazon.com/bedrock/)
+[![LangChain](https://img.shields.io/badge/LangChain-Enabled-blueviolet)](https://www.langchain.com/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
+[![MCP Architecture](https://img.shields.io/badge/Architecture-MCP-lightgrey.svg)](#mcp-architecture-overview)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-v0.1.0-blue.svg)](#)
+
 A specialized system that leverages AWS Bedrock for Retrieval-Augmented Generation (RAG). The system provides a microservices architecture for retrieving relevant documents from AWS Bedrock knowledge bases and answering user queries with citations and context.
+
+<div align="center">
+  <img src="docs/NoobBedrockRag.gif" alt="NoobBedrockRag Animation" width="800">
+</div>
 
 ## System Architecture
 
@@ -70,11 +82,24 @@ The MCP architecture allows for a modular design where:
    - The retrieved documents are used to generate an informed answer
    - The conversation is saved to MongoDB for future context
 
+## System Architecture
+
+The following diagram illustrates the system setup:
+
+![System Architecture](docs/system-arch.png)
+
+This diagram shows:
+- The **Agent Service** running the main application, including the API endpoint, the core RAG agent logic, and the MCP client manager.
+- The **Bedrock RAG MCP Service** hosting the tools for interacting with AWS Bedrock.
+- The **MongoDB MCP Service** hosting the tools for managing conversation history.
+- The Agent's MCP Client Manager connects to both MCP servers via SSE (Server-Sent Events) connections.
+- User requests come in via HTTP to the Agent API, and responses are sent back.
+
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.11
 - Docker and Docker Compose
 - AWS Account with access to Bedrock services
 - MongoDB instance
@@ -87,40 +112,41 @@ The MCP architecture allows for a modular design where:
    cd bedrock-rag-system
    ```
 
-2. Create a `.env` file with:
+2. Configure environment variables for each component according to their individual README files.
+
+3. Use the following make commands to build and run the system:
+
+   ```bash
+   # Build all containers
+   make build
+   
+   # Start all services in detached mode
+   make up
+   
+   # Start specific services
+   make start-agent         # Start only the agent service
+   make start-bedrock-rag   # Start only the Bedrock RAG MCP service
+   make start-mongodb       # Start only the MongoDB MCP service
+   
+   # View logs
+   make logs                # View all logs
+   make logs-agent          # View agent logs
+   make logs-bedrock-rag    # View Bedrock RAG MCP logs
+   make logs-mongodb        # View MongoDB MCP logs
+   
+   # Stop services
+   make down                # Stop all services
+   
+   # Clean up
+   make clean               # Remove all containers and volumes
+   
+   # Run tests
+   make test                # Run all tests
    ```
-   # OpenAI API
-   OPENAI_API_KEY=your-openai-key-here
 
-   # AWS Credentials
-   AWS_REGION=ca-central-1
-   AWS_ACCESS_KEY_ID=your-aws-access-key
-   AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+   Note: You'll need a Makefile with these commands in your project. If one doesn't exist, you can create it.
 
-   # Bedrock Settings
-   BEDROCK_MODEL_ID=anthropic.claude-3-sonnet-20240229-v1:0
-   KNOWLEDGE_BASE_ID=your-knowledge-base-id
-
-   # MCP Server settings
-   MCP_HOST=127.0.0.1
-   BEDROCK_RAG_MCP_PORT=3003
-   MONGODB_MCP_PORT=3004
-
-   # Agent API settings
-   AGENT_PORT=8000
-   API_HOST=0.0.0.0
-
-   # MongoDB settings
-   MONGODB_URI=mongodb://username:password@host:port/database
-   MONGODB_DB_NAME=bedrock_rag
-   MONGODB_COLLECTION=conversations
-   MAX_HISTORY_LENGTH=10
-
-   # Log settings
-   LOG_LEVEL=INFO
-   ```
-
-3. Start the system with Docker Compose:
+4. Start the system with Docker Compose if you don't want to use make:
    ```
    docker-compose up --build
    ```
