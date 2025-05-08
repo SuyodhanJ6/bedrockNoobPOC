@@ -1,36 +1,82 @@
-FROM python:3.11-slim
+# syntax=docker/dockerfile:1.9
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim AS builder
 
-WORKDIR /app
+# Use bash shell with pipefail option for better error detection
+SHELL ["sh", "-exc"]
 
-# Install dependencies for MongoDB
-RUN apt-get update && apt-get install -y \
+# Set environment variables for uv
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PYTHON=python3.11 \
+    UV_PROJECT_ENVIRONMENT=/app
+
+# Install only dependencies first (cached layer)
+# Using bind mounts to avoid copying unnecessary files
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync \
+        --locked \
+        --no-dev \
+        --no-install-project
+
+# Copy the application code
+COPY . /src
+WORKDIR /src
+
+# Install the application itself (separate layer for better caching)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync \
+        --locked \
+        --no-dev \
+        --no-editable
+
+##########################################################################
+
+# Production stage - only runtime dependencies
+FROM python:3.11-slim-bookworm
+
+SHELL ["sh", "-exc"]
+
+# Add virtualenv to PATH
+ENV PATH=/app/bin:$PATH
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Create non-root user for security
+RUN groupadd -r app && \
+    useradd -r -d /app -g app app
+
+# Copy the pre-built virtualenv from builder
+COPY --from=builder --chown=app:app /app /app
+
+# Copy application code directly to /app (not /app/agent)
+COPY --chown=app:app . /app
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
     gcc \
-    g++ \
+    wget \
+    python3-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements from pyproject.toml
+# Install Python dependencies
 COPY pyproject.toml .
 
-# Install dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir uv && \
-    pip install --no-cache-dir ".[dev]"
 
-# Create directories if they don't exist
-RUN mkdir -p /app/config /app/core /app/tools
+# Switch to non-root user
+USER app
+WORKDIR /app
 
-# Copy application files
-COPY config/ /app/config/
-COPY core/ /app/core/
-COPY tools/ /app/tools/
-COPY mongodb_mcp_server.py /app/
+# Healthcheck (updated to use port 3004)
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3004/health || exit 1
 
-# Make the script executable
-RUN chmod +x /app/mongodb_mcp_server.py
-
-# Expose the port the app runs on
 EXPOSE 3004
 
-# Command to run the application
-CMD ["python", "mongodb_mcp_server.py"] 
+# Run the application
+CMD ["python", "mongodb_mcp_server.py"]

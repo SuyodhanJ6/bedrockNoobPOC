@@ -1,9 +1,9 @@
 """
-IPL Tweet Generator Agent Package
+Bedrock RAG Agent Package
 """
 
-# Import the IPLTweetAgent class to make it available when importing the package
-from agent.agent import IPLTweetAgent, run_tweet_generation
+# Import the BedrockRAGAgent class to make it available when importing the package
+from agent.agent import BedrockRAGAgent, run_rag_query
 
 # Export the main classes and functions
-__all__ = ["IPLTweetAgent", "run_tweet_generation"]
+__all__ = ["BedrockRAGAgent", "run_rag_query"]

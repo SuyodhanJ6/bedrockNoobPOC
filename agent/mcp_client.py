@@ -27,9 +27,9 @@ class MCPClientManager:
     async def setup(self):
         """Set up connections to all MCP servers."""
         try:
-            # Define MCP server URLs
-            bedrock_rag_mcp_url = f"http://{self.mcp_config['host']}:{self.mcp_config['bedrock_rag_port']}/sse"
-            mongodb_mcp_url = f"http://{self.mcp_config['host']}:{self.mcp_config['mongodb_port']}/sse"
+            # Define MCP server URLs using service-specific hosts
+            bedrock_rag_mcp_url = f"http://{self.mcp_config['bedrock_rag_host']}:{self.mcp_config['bedrock_rag_port']}/sse"
+            mongodb_mcp_url = f"http://{self.mcp_config['mongodb_host']}:{self.mcp_config['mongodb_port']}/sse"
             
             # Connect to MCP servers
             self.mcp_client = MultiServerMCPClient(

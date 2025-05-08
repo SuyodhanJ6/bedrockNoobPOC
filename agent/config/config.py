@@ -31,8 +31,9 @@ class Config:
     TOP_P = float(os.environ.get("TOP_P", "0.9"))
     
     # MCP Server settings
-    MCP_HOST = os.environ.get("MCP_HOST", "localhost")
+    BEDROCK_RAG_MCP_HOST = os.environ.get("BEDROCK_RAG_MCP_HOST", "bedrock-rag-mcp")
     BEDROCK_RAG_MCP_PORT = os.environ.get("BEDROCK_RAG_MCP_PORT", "3003")
+    MONGODB_MCP_HOST = os.environ.get("MONGODB_MCP_HOST", "mongodb-mcp")
     MONGODB_MCP_PORT = os.environ.get("MONGODB_MCP_PORT", "3004")
     
     # Memory settings
@@ -75,8 +76,9 @@ class Config:
     def get_mcp_config(cls) -> Dict[str, str]:
         """Return MCP server configuration settings"""
         return {
-            "host": cls.MCP_HOST,
+            "bedrock_rag_host": cls.BEDROCK_RAG_MCP_HOST,
             "bedrock_rag_port": cls.BEDROCK_RAG_MCP_PORT,
+            "mongodb_host": cls.MONGODB_MCP_HOST,
             "mongodb_port": cls.MONGODB_MCP_PORT
         }
     

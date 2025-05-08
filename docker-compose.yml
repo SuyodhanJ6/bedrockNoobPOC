@@ -3,7 +3,7 @@ version: '3.8'
 services:
   agent:
     build: ./agent
-    env_file: .env
+    env_file: ./agent/.env
     ports:
       - "${AGENT_PORT:-8000}:8000"
     depends_on:
@@ -21,7 +21,7 @@ services:
 
   bedrock-rag-mcp:
     build: ./mcp_servers/bedrock_rag
-    env_file: .env
+    env_file: ./mcp_servers/bedrock_rag/.env
     ports:
       - "${BEDROCK_RAG_PORT:-3003}:3003"
     networks:
@@ -31,73 +31,59 @@ services:
       - ./mcp_servers/bedrock_rag/bedrockRag_mcp_server.py:/app/bedrockRag_mcp_server.py
       - bedrock-data:/app/data
     environment:
-      # Server settings
+      # Server Settings
       - SERVER_HOST=0.0.0.0
       - BEDROCK_RAG_PORT=${BEDROCK_RAG_PORT:-3003}
       - DEBUG=${DEBUG:-False}
       
-      # AWS Bedrock settings
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # AWS Credentials
+      # - AWS_REGION=${AWS_REGION:-ca-central-1}
+      # - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      # - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
       
-      # Bedrock model settings
-      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-anthropic.claude-3-sonnet-20240229-v1:0}
-      - DEFAULT_MAX_TOKENS=${DEFAULT_MAX_TOKENS:-1000}
-      - DEFAULT_TEMPERATURE=${DEFAULT_TEMPERATURE:-0.7}
-      - DEFAULT_TOP_P=${DEFAULT_TOP_P:-0.9}
+      # Knowledge Base Settings
+      # - KNOWLEDGE_BASE_ID=${KNOWLEDGE_BASE_ID}
       
-      # RAG settings
-      - VECTOR_STORE_TYPE=${VECTOR_STORE_TYPE:-faiss}
-      - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-bedrock}
-      - DOCUMENT_CHUNK_SIZE=${DOCUMENT_CHUNK_SIZE:-1000}
-      - DOCUMENT_CHUNK_OVERLAP=${DOCUMENT_CHUNK_OVERLAP:-200}
-      - RETRIEVAL_TOP_K=${RETRIEVAL_TOP_K:-3}
+      # Reranking Settings
+      - USE_RERANKING=${USE_RERANKING:-True}
+      - RERANK_MODEL_ID=${RERANK_MODEL_ID:-amazon.rerank-v1:0}
+      - INITIAL_RESULTS=${INITIAL_RESULTS:-5}
+      - TOP_N_RESULTS=${TOP_N_RESULTS:-3}
       
-      # Logging settings
+      # Logging Settings
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      
+      # Environment
+      - ENVIRONMENT=${ENVIRONMENT:-development}
     command: >
       python bedrockRag_mcp_server.py --host 0.0.0.0
 
   mongodb-mcp:
     build: ./mcp_servers/mongodb
-    env_file: .env
+    env_file: ./mcp_servers/mongodb/.env
     ports:
       - "${MONGODB_MCP_PORT:-3004}:3004"
     networks:
       - mcp-network
-    depends_on:
-      - mongodb
     volumes:
       - ./mcp_servers/mongodb/tools:/app/tools
       - ./mcp_servers/mongodb/mongodb_mcp_server.py:/app/mongodb_mcp_server.py
     environment:
-      # Server settings
+      # Server Settings
       - SERVER_HOST=0.0.0.0
       - MONGODB_MCP_PORT=${MONGODB_MCP_PORT:-3004}
       - DEBUG=${DEBUG:-False}
       
-      # MongoDB settings
-      - MONGODB_URI=mongodb://mongodb:27017/
+      # MongoDB Settings
       - MONGODB_DB_NAME=${MONGODB_DB_NAME:-bedrock_rag}
       - MONGODB_COLLECTION=${MONGODB_COLLECTION:-conversations}
       - MAX_HISTORY_LENGTH=${MAX_HISTORY_LENGTH:-10}
       
-      # Logging settings
+      # Logging Settings
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     command: >
       python mongodb_mcp_server.py --host 0.0.0.0
-
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "${MONGODB_PORT:-27017}:27017"
-    networks:
-      - mcp-network
-    volumes:
-      - mongodb-data:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=${MONGODB_DB_NAME:-bedrock_rag}
 
 networks:
   mcp-network:
@@ -106,4 +92,3 @@ networks:
 volumes:
   agent-data:
   bedrock-data:
-  mongodb-data:

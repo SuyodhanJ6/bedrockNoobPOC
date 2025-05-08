@@ -64,11 +64,7 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY pyproject.toml .
-# Add MongoDB dependency
-RUN pip install --no-cache-dir pymongo
-RUN pip install --no-cache-dir .
+
 
 # Switch to non-root user
 USER app
