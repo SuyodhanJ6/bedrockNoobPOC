@@ -1,0 +1,144 @@
+pipeline {
+    agent any
+    
+    environment {
+        AWS_REGION = 'us-east-1'
+        ECR_REPOSITORY = credentials('aws-ecr-repository')
+        AWS_CREDENTIALS = credentials('aws-credentials')
+        EC2_DEV_HOST = credentials('ec2-dev-host')
+        EC2_PROD_HOST = credentials('ec2-prod-host')
+        EC2_SSH_KEY = credentials('ec2-ssh-key')
+        VERSION = sh(script: 'echo $(date +%Y%m%d).$(git rev-parse --short HEAD)', returnStdout: true).trim()
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                sh 'pip install -r requirements.txt'
+            }
+        }
+        
+        stage('Lint') {
+            steps {
+                sh 'flake8 .'
+                sh 'black --check .'
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                sh 'make test'
+            }
+        }
+        
+        stage('Build Docker Images') {
+            steps {
+                sh 'make build'
+            }
+        }
+        
+        stage('Push Docker Images to ECR') {
+            when {
+                branch 'main'
+            }
+            steps {
+                withAWS(credentials: 'aws-credentials', region: '${AWS_REGION}') {
+                    sh '''
+                        # Login to ECR
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPOSITORY}
+                        
+                        # Tag images
+                        docker tag bedrock-rag-agent:latest ${ECR_REPOSITORY}/bedrock-rag-agent:${VERSION}
+                        docker tag bedrock-rag-agent:latest ${ECR_REPOSITORY}/bedrock-rag-agent:latest
+                        
+                        docker tag bedrock-rag-mcp:latest ${ECR_REPOSITORY}/bedrock-rag-mcp:${VERSION}
+                        docker tag bedrock-rag-mcp:latest ${ECR_REPOSITORY}/bedrock-rag-mcp:latest
+                        
+                        docker tag mongodb-mcp:latest ${ECR_REPOSITORY}/mongodb-mcp:${VERSION}
+                        docker tag mongodb-mcp:latest ${ECR_REPOSITORY}/mongodb-mcp:latest
+                        
+                        # Push images to ECR
+                        docker push ${ECR_REPOSITORY}/bedrock-rag-agent:${VERSION}
+                        docker push ${ECR_REPOSITORY}/bedrock-rag-agent:latest
+                        
+                        docker push ${ECR_REPOSITORY}/bedrock-rag-mcp:${VERSION}
+                        docker push ${ECR_REPOSITORY}/bedrock-rag-mcp:latest
+                        
+                        docker push ${ECR_REPOSITORY}/mongodb-mcp:${VERSION}
+                        docker push ${ECR_REPOSITORY}/mongodb-mcp:latest
+                    '''
+                }
+            }
+        }
+        
+        stage('Deploy to Dev EC2') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                withAWS(credentials: 'aws-credentials', region: '${AWS_REGION}') {
+                    sh '''
+                        # Generate docker-compose.yml file with current version
+                        envsubst < docker-compose.template.yml > docker-compose.yml
+                        
+                        # Copy to EC2 instance
+                        scp -i ${EC2_SSH_KEY} -o StrictHostKeyChecking=no docker-compose.yml ec2-user@${EC2_DEV_HOST}:/home/ec2-user/bedrock-rag/
+                        
+                        # SSH to EC2 and pull/run the updated containers
+                        ssh -i ${EC2_SSH_KEY} -o StrictHostKeyChecking=no ec2-user@${EC2_DEV_HOST} "cd /home/ec2-user/bedrock-rag && \
+                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPOSITORY} && \
+                            docker-compose pull && \
+                            docker-compose up -d"
+                    '''
+                }
+            }
+        }
+        
+        stage('Deploy to Production EC2') {
+            when {
+                branch 'main'
+            }
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    input message: 'Deploy to production?', ok: 'Yes'
+                }
+                withAWS(credentials: 'aws-credentials', region: '${AWS_REGION}') {
+                    sh '''
+                        # Generate docker-compose.yml file with current version
+                        envsubst < docker-compose.template.yml > docker-compose.yml
+                        
+                        # Copy to EC2 instance
+                        scp -i ${EC2_SSH_KEY} -o StrictHostKeyChecking=no docker-compose.yml ec2-user@${EC2_PROD_HOST}:/home/ec2-user/bedrock-rag/
+                        
+                        # SSH to EC2 and pull/run the updated containers
+                        ssh -i ${EC2_SSH_KEY} -o StrictHostKeyChecking=no ec2-user@${EC2_PROD_HOST} "cd /home/ec2-user/bedrock-rag && \
+                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPOSITORY} && \
+                            docker-compose pull && \
+                            docker-compose up -d"
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Build successful!'
+        }
+        failure {
+            echo 'Build failed!'
+            mail to: 'team@example.com',
+                 subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
+                 body: "Something is wrong with ${env.BUILD_URL}"
+        }
+    }
+} 
