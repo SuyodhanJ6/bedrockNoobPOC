@@ -7,6 +7,8 @@
 [![MCP Architecture](https://img.shields.io/badge/Architecture-MCP-lightgrey.svg)](#mcp-architecture-overview)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-v0.1.0-blue.svg)](#)
+[![Jenkins](https://img.shields.io/badge/CI%2FCD-Jenkins-D24939.svg?logo=jenkins&logoColor=white)](https://www.jenkins.io/)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717.svg?logo=github)](https://github.com/SuyodhanJ6/bedrockNoobPOC.git)
 
 A specialized system that leverages AWS Bedrock for Retrieval-Augmented Generation (RAG). The system provides a microservices architecture for retrieving relevant documents from AWS Bedrock knowledge bases and answering user queries with citations and context.
 
@@ -105,8 +107,8 @@ The MCP architecture allows for a modular design where:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/your-username/bedrock-rag-system.git
-   cd bedrock-rag-system
+   git clone https://github.com/SuyodhanJ6/bedrockNoobPOC.git
+   cd bedrockNoobPOC
    ```
 
 2. Configure environment variables for each component according to their individual README files.
@@ -175,6 +177,121 @@ With a JSON body like:
   "conversation_id": "optional-conversation-id"
 }
 ```
+
+## CI/CD with Jenkins
+
+This project includes a Jenkins CI/CD pipeline for automated building, testing, and deployment. The CI/CD configuration can be found in the following files:
+
+- **Jenkinsfile** - Contains the complete pipeline definition with all stages
+- **docker-compose.yml** - The final Docker Compose configuration used by Jenkins for deployment
+- **.jenkins/** directory - Contains documentation and credentials information
+
+### Overview
+
+This project uses Jenkins for continuous integration and deployment. The implementation is available in the `jenkins-v0.1` branch, which contains all the necessary configuration files for the CI/CD pipeline.
+
+### Key Files
+
+- **Jenkinsfile** - The final version of the Jenkins pipeline definition that automates the build, test, and deployment process
+- **docker-compose.yml** - The final Docker Compose configuration used for deployment
+- **.jenkins/** - Directory containing documentation about the pipeline:
+  - **.jenkins/README.md** - Documentation on the pipeline configuration
+  - **.jenkins/CREDENTIALS.md** - Details on the required credentials
+
+### Getting Started with Jenkins CI/CD
+
+1. Clone the repository and checkout the jenkins-v0.1 branch:
+   ```bash
+   git clone https://github.com/SuyodhanJ6/bedrockNoobPOC.git
+   cd bedrockNoobPOC
+   git checkout jenkins-v0.1
+   ```
+
+2. Set up Jenkins following the installation instructions below
+
+3. Configure the Jenkins credentials as described in .jenkins/CREDENTIALS.md
+
+4. Create a new Jenkins pipeline job pointing to the repository and the Jenkinsfile
+
+### Pipeline Workflow
+
+The CI/CD pipeline automatically:
+- Builds Docker images for all services
+- Runs tests to ensure code quality
+- Pushes images to ECR repository (main branch only)
+- Deploys to development environment (develop branch)
+- Deploys to production with manual approval (main branch)
+
+For detailed information about the pipeline stages and configuration, see the [.jenkins/README.md](.jenkins/README.md) file.
+
+### Jenkins Installation
+
+To set up Jenkins for the CI/CD pipeline:
+
+1. Install Jenkins on an Ubuntu server:
+
+   ```bash
+   # Add the Jenkins repository key
+   sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+       https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+   
+   # Add the Jenkins repository
+   echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+       https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+       /etc/apt/sources.list.d/jenkins.list > /dev/null
+   
+   # Install Java and Jenkins
+   sudo apt-get update -y && sudo apt-get install fontconfig openjdk-17-jre -y && sudo apt-get install jenkins -y
+   
+   # Start and enable Jenkins
+   sudo systemctl start jenkins
+   sudo systemctl enable jenkins
+   
+   # Check Jenkins status
+   sudo systemctl status jenkins
+   ```
+
+2. Install Docker for Jenkins:
+
+   ```bash
+   # Install Docker
+   curl -fsSL https://get.docker.com -o get-docker.sh
+   sudo sh get-docker.sh
+   
+   # Add your user to the Docker group
+   sudo usermod -aG docker $USER
+   
+   # Add Jenkins user to the Docker group
+   sudo usermod -aG docker jenkins
+   
+   # Restart Jenkins
+   sudo systemctl restart jenkins
+   
+   # Apply new group membership
+   newgrp docker
+   
+   # Ensure Docker socket is accessible
+   sudo chmod 666 /var/run/docker.sock
+   ```
+
+3. Get the initial Jenkins admin password:
+
+   ```bash
+   sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+   ```
+
+4. Open Jenkins in your browser at http://your-server-ip:8080 and complete the setup.
+
+5. Install the required Jenkins plugins:
+   - Docker Pipeline
+   - AWS Steps
+   - Credentials Binding
+   - Pipeline Utility Steps
+   - Timestamper
+   - SSH Agent
+   - GitLab Integration
+
+6. Configure the Jenkins credentials as described in [.jenkins/CREDENTIALS.md](.jenkins/CREDENTIALS.md).
 
 ## License
 

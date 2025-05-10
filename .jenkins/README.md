@@ -2,6 +2,12 @@
 
 This directory contains the Jenkins pipeline configuration for building, testing, and deploying the Bedrock RAG System.
 
+## Pipeline Configuration Files
+
+- **Jenkinsfile** - Located in the root directory, this is the final version of the Jenkins pipeline definition
+- **docker-compose.yml** - Located in the root directory, this is the final Docker Compose configuration used for deployment
+- **CREDENTIALS.md** - Details about the credentials required for the pipeline
+
 ## Pipeline Overview
 
 The Jenkins pipeline performs the following stages:
@@ -34,12 +40,23 @@ The following credentials need to be configured in Jenkins:
 - `ec2-dev-host` - Development EC2 instance hostname/IP
 - `ec2-prod-host` - Production EC2 instance hostname/IP
 - `ec2-ssh-key` - SSH key for EC2 instances
+- `KNOWLEDGE_BASE_ID` - Bedrock Knowledge Base ID
+- `MONGODB_URI` - MongoDB connection string
+- `MONGODB_DB_NAME` - MongoDB database name
+- `MONGODB_COLLECTION` - MongoDB collection name
+- `gitlab-webhook-secret` - Secret token for GitLab webhook
+
+See [CREDENTIALS.md](CREDENTIALS.md) for more details on credential values and setup.
 
 ## Environment Variables
+
+Environment variables are passed directly from Jenkins to the Docker Compose deployment on EC2:
 
 - `VERSION` - Automatically generated based on date and git commit
 - `AWS_REGION` - AWS region for ECR and EC2 resources
 - `ECR_REPOSITORY` - ECR repository URL for Docker images
+- `AWS_ACCESS_KEY_ID` - AWS access key (from credentials)
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key (from credentials)
 
 ## Deployment Setup
 
@@ -50,9 +67,17 @@ The following credentials need to be configured in Jenkins:
 3. Docker and Docker Compose installed on EC2 instances
 4. IAM roles for EC2 instances to pull from ECR
 
-### Docker Compose Template
+### Docker Compose Configuration
 
-Create a `docker-compose.template.yml` file in your repository that will be used as a template for deployment. Environment variables in this file will be replaced with actual values during deployment.
+Ensure your `docker-compose.yml` file uses environment variables for image names and versions:
+
+```yaml
+version: '3'
+services:
+  agent:
+    image: ${ECR_REPOSITORY}/bedrock-agent:${VERSION}
+    # other configurations...
+```
 
 ## Usage
 
