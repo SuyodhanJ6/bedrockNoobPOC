@@ -16,11 +16,21 @@ A specialized system that leverages AWS Bedrock for Retrieval-Augmented Generati
 
 ## System Architecture
 
+The following diagram illustrates the system setup:
+
+![System Architecture](docs/system-arch.png)
+
 This project follows the Model Context Protocol (MCP) architecture, which separates the agent logic from the tool implementations. The system consists of:
 
 1. **MCP Servers**: Microservices that host tools and provide specific functionality
 2. **Agent**: A client that connects to the MCP servers and uses their tools
-3. **Metrics & Monitoring**: Components for tracking system performance and health
+
+This diagram shows:
+- The **Agent Service** running the main application, including the API endpoint, the core RAG agent logic, and the MCP client manager.
+- The **Bedrock RAG MCP Service** hosting the tools for interacting with AWS Bedrock.
+- The **MongoDB MCP Service** hosting the tools for managing conversation history.
+- The Agent's MCP Client Manager connects to both MCP servers via SSE (Server-Sent Events) connections.
+- User requests come in via HTTP to the Agent API, and responses are sent back.
 
 ### MCP Architecture Overview
 
@@ -82,19 +92,6 @@ The MCP architecture allows for a modular design where:
    - The retrieved documents are used to generate an informed answer
    - The conversation is saved to MongoDB for future context
 
-## System Architecture
-
-The following diagram illustrates the system setup:
-
-![System Architecture](docs/system-arch.png)
-
-This diagram shows:
-- The **Agent Service** running the main application, including the API endpoint, the core RAG agent logic, and the MCP client manager.
-- The **Bedrock RAG MCP Service** hosting the tools for interacting with AWS Bedrock.
-- The **MongoDB MCP Service** hosting the tools for managing conversation history.
-- The Agent's MCP Client Manager connects to both MCP servers via SSE (Server-Sent Events) connections.
-- User requests come in via HTTP to the Agent API, and responses are sent back.
-
 ## Getting Started
 
 ### Prerequisites
@@ -143,8 +140,6 @@ This diagram shows:
    # Run tests
    make test                # Run all tests
    ```
-
-   Note: You'll need a Makefile with these commands in your project. If one doesn't exist, you can create it.
 
 4. Start the system with Docker Compose if you don't want to use make:
    ```
